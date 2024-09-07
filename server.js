@@ -5,6 +5,7 @@ const bodyParser  = require('body-parser');
 const expect      = require('chai').expect;
 const cors        = require('cors');
 const mongoose = require('mongoose');
+mongoose.set('useFindAndModify', false);
 require('dotenv').config();
 
 const apiRoutes         = require('./routes/api.js');

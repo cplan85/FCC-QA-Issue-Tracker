@@ -37,6 +37,7 @@ module.exports = function (app) {
         res.json({ error: 'missing _id' }) 
         return;
        }
+    
 
        findAndUpdate(_id, parametersToChange, res)
       
@@ -44,7 +45,19 @@ module.exports = function (app) {
     
     .delete(function (req, res){
       let project = req.params.project;
-      
+
+      const {_id } = req.body;
+      if (!_id) {
+        res.json({ error: 'missing _id' })
+        return
+      }
+         //66dc362e0ce9da13185cfda5
+      if (_id.length != 24 ) {
+          res.json({ error: 'could not delete', _id: _id });
+          return
+      }
+
+      removeIssue(_id, project, res)
     });
     
 };
@@ -218,5 +231,24 @@ const findAndUpdate = (_id, changeParameters, res) => {
   .catch(err => {
     console.error('Error retrieving Project:', err);
     res.status(500).json({ error: 'could not update', '_id': _id });
+  });
+};
+
+const removeIssue = (_id, project, res) => {
+  Issue.findOneAndDelete({ _id: _id, project: project}, function(err, issue) {
+    if (!issue) {
+      res.json({ error: 'could not delete', _id: _id });
+      return;
+    }
+    console.log(issue.project)
+    if (err) {
+      res.json({ error: 'could not delete', _id: _id });
+    } else {
+      res.json({ result: 'successfully deleted', _id: _id });
+    }
+  })  
+  .catch(err => {
+    console.error('Error retrieving Project:', err);
+    res.json({ error: 'could not delete', _id: _id });
   });
 };
