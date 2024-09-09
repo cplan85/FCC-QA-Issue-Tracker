@@ -22,8 +22,10 @@ module.exports = function (app) {
       let issue_text = req.body.issue_text;
       let created_by = req.body.created_by;
       let assigned_to = req.body.assigned_to;
+      let status_text = req.body.status_text;
+      
 
-      createAndSaveIssue(project, issue_title, issue_text, created_by, assigned_to, res )
+      createAndSaveIssue(project, issue_title, issue_text, created_by, assigned_to, status_text, res )
     })
     
     .put(function (req, res){
@@ -47,7 +49,10 @@ module.exports = function (app) {
       let project = req.params.project;
 
       const {_id } = req.body;
+
+      console.log("attempt Delete", _id, project)
       if (!_id) {
+        console.log("NO ID")
         res.json({ error: 'missing _id' })
         return
       }
@@ -63,7 +68,7 @@ module.exports = function (app) {
 };
 
 
-var createAndSaveIssue = function(project, issue_title, issue_text, created_by, assigned_to, res ) {
+var createAndSaveIssue = function(project, issue_title, issue_text, created_by, assigned_to, status_text, res ) {
 
   if (issue_title == null || issue_text == null || created_by == null) {
    res.json({ error: 'required field(s) missing' }) 
@@ -77,17 +82,16 @@ var createAndSaveIssue = function(project, issue_title, issue_text, created_by, 
 
     let createdDate = new Date().toISOString();
 
-    var newIssue = new Issue({project: project, title: issue_title, text: issue_text, created_by: created_by, created_on: createdDate, assigned_to: assigned_to, updated_on: createdDate   });
+    var newIssue = new Issue({project: project, title: issue_title, text: issue_text, created_by: created_by, created_on: createdDate, assigned_to: assigned_to, updated_on: createdDate, status_text: status_text  });
 
   
     newIssue.save();
 
     if( doc == null) {
-      console.log("doc is null")
       associatedProject = new Project({name: project, issues: [newIssue._id]})
       associatedProject.save();
     } else {
-      console.log("WE FOUND A PROJECT", newIssue._id)
+     // console.log("WE FOUND A PROJECT", newIssue._id)
       let existingIssues = doc.issues;
       existingIssues.push(newIssue._id)
       doc.issues = existingIssues;
@@ -99,7 +103,7 @@ var createAndSaveIssue = function(project, issue_title, issue_text, created_by, 
 
     res.json(returnedIssue);
 
-    console.log(returnedIssue, "SUCCESSFUL POST")
+  //  console.log(returnedIssue, "SUCCESSFUL POST")
   })
   .catch(err => {
     console.error('Error creating Issue:', err);
@@ -108,7 +112,9 @@ var createAndSaveIssue = function(project, issue_title, issue_text, created_by, 
 };
 
 const getIssuesPerProject = (projectName, req, res) => {
-  const { open, created_by, status_text, created_on, updated_on, assigned_to, _id } = req.query;
+  const { open, created_by, issue_title, status_text, created_on, updated_on, assigned_to, _id } = req.query;
+
+  //console.log(open, created_by, issue_title, status_text, created_on, updated_on, assigned_to, _id, "REQUEST PARAMS")
 
   Project.findOne({ name: projectName })
     .then(doc => {
@@ -125,6 +131,7 @@ const getIssuesPerProject = (projectName, req, res) => {
       if (created_on) issueReqObject.created_on = created_on;
       if (updated_on) issueReqObject.updated_on = updated_on;
       if (assigned_to) issueReqObject.assigned_to = assigned_to
+      if (issue_title) issueReqObject.title = issue_title
 
       if (_id) {
         issueReqObject._id =_id ;
@@ -151,7 +158,7 @@ const getIssuesPerProject = (projectName, req, res) => {
       else {
           issuePromises = doc.issues.map(issueId => {
           issueReqObject._id =issueId;
-          console.log(issueReqObject, "MY ISSUE REQUEST OBJECT")
+          // console.log(issueReqObject, "MY ISSUE REQUEST OBJECT")
           return Issue.findOne(issueReqObject).then(issueDoc => {
             if (issueDoc) {
               //REFACTOR
@@ -215,7 +222,6 @@ const findAndUpdate = (_id, changeParameters, res) => {
     if (assigned_to) issue.assigned_to = assigned_to;
     if (status_text) issue.status_text = status_text;
     
-    console.log(issue, "CHECKING ISSUE BEFORE FAIL")
     let updateDate = new Date().toISOString();
     issue.updated_on = updateDate;
 
@@ -243,9 +249,12 @@ const removeIssue = (_id, project, res) => {
     console.log(issue.project)
     if (err) {
       res.json({ error: 'could not delete', _id: _id });
-    } else {
+      return;
+    } 
+    
+      console.log("successful delete", _id)
       res.json({ result: 'successfully deleted', _id: _id });
-    }
+    
   })  
   .catch(err => {
     console.error('Error retrieving Project:', err);
